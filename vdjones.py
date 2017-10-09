@@ -5,7 +5,6 @@ import sys
 import copy
 import argparse as ap
 
-
 from collections import defaultdict
 import cPickle as pkl
 import numpy as np
@@ -64,7 +63,8 @@ def load_data(FASTA_FILE, V_SEG_LENGTH=300):
             cdr3_dna = s[12]
             v_dna = s[13][-V_SEG_LENGTH:]
             
-            # Filter out all clones whose V segments aren't at least V_SEG_LENGTH nucleotides long             
+            # Filter out all clones whose V segments aren't at 
+            # least V_SEG_LENGTH nucleotides long             
             if len(v_dna) == V_SEG_LENGTH:
                 cdr3s.append((accession, cdr3_dna))
                 all_v_segs.append((accession, v_dna))
@@ -95,9 +95,9 @@ def gen_adj_list(v_segs, start, stop):
     num_segs = len(v_segs)
     logging.info("Starting!")
     adj_list = defaultdict(set)
-    one_percent = (stop - start) / 100
+    ten_percent = (stop - start) / 10
     for i in range(start, stop):
-        if ((i - start) % one_percent == 0):
+        if ((i - start) % ten_percent == 0):
             logging.info('Completed {}%'.format(100 * (i-start)/(stop-start)))
         v_seg = v_segs[i]
         for j in range(i+1, num_segs):
@@ -141,7 +141,8 @@ def pick_from_cluster(clusters, all_v_segs, merged_list, v_seg_dict):
 
 def find_dominant_clones(v_seg_counts, connectivity_order, merged_cluster_adj_list,
                          non_singletons_v_segs):
-    # Find dominant clones by collapsing low connectivity, low frequency nodes into their more connected neighbors.
+    # Find dominant clones by collapsing low connectivity, low frequency nodes 
+    # into their more connected neighbors.
 
     surviving_nodes = {}
 
@@ -177,17 +178,23 @@ if __name__ == "__main__":
     p = ap.ArgumentParser(description='Identify germline segments.')
     p.add_argument(metavar='human.fa', type=str, dest='fasta_file',
                    help='FASTA data file')
-    p.add_argument('-l', metavar='out.log', default='out.log', 
-                    type=str, dest='log', help='logfile location')
+    p.add_argument(metavar='/path/to/output', type=str, dest='outpath',
+                   help='Path to output')
 
     args = p.parse_args()
 
     FASTA_FILE = args.fasta_file
+    LOG_FILE = os.path.join(args.outpath, 'out.log')
 
-    logging.basicConfig(filename=args.log,
+    logging.basicConfig(filename=LOG_FILE,
                         format='%(asctime)s %(levelname)s %(process)d: ' +
                         '%(message)s',
                         level=logging.INFO)
+
+
+    logging.info('=================== CALL ===================')
+    logging.info('{}'.format(' '.join(sys.argv)))
+    logging.info('============================================')
 
     ## Load Data
     logging.info("Loading data")
@@ -202,13 +209,14 @@ if __name__ == "__main__":
     adj_lists = par.submit_jobs(gen_adj_list, inputs, 6)
     logging.info("Merging adjacency lists")
     merged_list = merge_adj_lists(adj_lists)
+    allsegs_adj_list_file = os.path.join(args.outpath, 'allsegs.adjlist')
+    out.dump_connectivity(merged_list, allsegs_adj_list_file)
 
     ## CDR3 Clustering
     logging.info("Clustering sequences by CDR3")
     clusters = defaultdict(list)
     for idx, cdr3 in tqdm.tqdm(enumerate(cdr3s)):
         clusters[cdr3[1]].append(idx)
-
 
     ## Pick from Clusters
     logging.info("Picking from clusters")
@@ -217,6 +225,8 @@ if __name__ == "__main__":
     logging.info("Rendering non-redundant and non-singleton")
     cluster_rep_v_segs = list(set(cluster_rep_v_segs))
     non_singletons_v_segs = [x for x in cluster_rep_v_segs if len(merged_list[v_seg_dict[x]]) > 0]
+    cluster_reps_file = os.path.join(args.outpath, 'cluster_reps.txt')
+    out.dump_connectivity(non_singletons_v_segs, cluster_reps_file)
 
     ## Connectivity of Cluster Reps
     logging.info("Starting adjacency list of cluster reps generation")
@@ -227,7 +237,9 @@ if __name__ == "__main__":
     cluster_adj_lists = par.submit_jobs(gen_adj_list, cluster_inputs, 4)
     logging.info("Merging adjacency lists")
     merged_cluster_adj_list = merge_adj_lists(cluster_adj_lists)
-    
+    cluster_adj_list_file = os.path.join(args.outpath, 'clusters.adjlist')
+    out.dump_connectivity(merged_cluster_adj_list, cluster_adj_list_file)
+
     ## Find dominant clones
     # Sorted the cluster reps in increasing order of connectivity and then frequency
     logging.info("Finding dominant clones")
@@ -246,4 +258,5 @@ if __name__ == "__main__":
     sorted_survivors_v_segs = [non_singletons_v_segs[v] for v in sorted_survivors]
     sorted_survivors_scores = [surviving_nodes[v] for v in sorted_survivors]
 
-    out.dump_fasta(sorted_survivors_v_segs, 'dominant.clones', sorted_survivors_scores)
+    selected_clones_file = os.path.join(args.outpath, 'dominant.fa')
+    out.dump_fasta(sorted_survivors_v_segs, selected_clones_file, sorted_survivors_scores)
