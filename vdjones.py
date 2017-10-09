@@ -5,7 +5,6 @@ import sys
 import copy
 
 from collections import defaultdict
-from matplotlib import pyplot as plt
 import cPickle as pkl
 import numpy as np
 
@@ -236,6 +235,6 @@ if __name__ == "__main__":
                               key=lambda x: surviving_nodes[x], reverse=True)
 
     sorted_survivors_v_segs = [non_singletons_v_segs[v] for v in sorted_survivors]
-    sorted_survivors_scores = [v_seg_scores[v_seg] for v_seg in sorted_survivors_v_segs]
+    sorted_survivors_scores = [surviving_nodes[v] for v in sorted_survivors]
 
     out.dump_fasta(sorted_survivors_v_segs, 'dominant.clones', sorted_survivors_scores)
