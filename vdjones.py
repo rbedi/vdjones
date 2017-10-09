@@ -3,6 +3,8 @@ import os
 import logging
 import sys
 import copy
+import argparse as ap
+
 
 from collections import defaultdict
 import cPickle as pkl
@@ -172,10 +174,17 @@ def find_dominant_clones(v_seg_counts, connectivity_order, merged_cluster_adj_li
 
 if __name__ == "__main__":
 
-    PROJECT_ROOT = '/Users/rishi/dbio/mnt'
-    FASTA_FILE = os.path.join(PROJECT_ROOT, 'humans-separated/cluster/091/091-annot.fa')
+    p = ap.ArgumentParser(description='Identify germline segments.')
+    p.add_argument(metavar='human.fa', type=str, dest='fasta_file',
+                   help='FASTA data file')
+    p.add_argument('-l', metavar='out.log', default='out.log', 
+                    type=str, dest='log', help='logfile location')
 
-    logging.basicConfig(stream=sys.stdout,
+    args = p.parse_args()
+
+    FASTA_FILE = args.fasta_file
+
+    logging.basicConfig(filename=args.log,
                         format='%(asctime)s %(levelname)s %(process)d: ' +
                         '%(message)s',
                         level=logging.INFO)
