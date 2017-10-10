@@ -202,15 +202,20 @@ if __name__ == "__main__":
     logging.info("Data loaded")
 
     ## Connectivity
-    logging.info("Starting adjacency list generation")
-    num_segs = len(v_segs_int8)
-    intervals = gauss_interval(num_segs, 6)
-    inputs = [(v_segs_int8, pair[0], pair[1]) for pair in intervals]
-    adj_lists = par.submit_jobs(gen_adj_list, inputs, 6)
-    logging.info("Merging adjacency lists")
-    merged_list = merge_adj_lists(adj_lists)
     allsegs_adj_list_file = os.path.join(args.outpath, 'allsegs.adjlist')
-    out.dump_connectivity(merged_list, allsegs_adj_list_file)
+
+    if os.path.exists(allsegs_adj_list_file):
+        logging.info("Recovering adj list")
+        merged_list = out.recover_adj_list(allsegs_adj_list_file)
+    else:
+        logging.info("No adj list file found; starting adjacency list generation")
+        num_segs = len(v_segs_int8)
+        intervals = gauss_interval(num_segs, 6)
+        inputs = [(v_segs_int8, pair[0], pair[1]) for pair in intervals]
+        adj_lists = par.submit_jobs(gen_adj_list, inputs, 6)
+        logging.info("Merging adjacency lists")
+        merged_list = merge_adj_lists(adj_lists)
+        out.dump_connectivity(merged_list, allsegs_adj_list_file)
 
     ## CDR3 Clustering
     logging.info("Clustering sequences by CDR3")
