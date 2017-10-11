@@ -5,13 +5,17 @@ import os
 import copy
 import sklearn.metrics
 import tqdm
+import logging
+import sys
 
 def compute_quality(PUTATIVE_FILE, IMGT_CLASSIFIED, cutoff=None):
     all_genes = set()
 
+    logging.info("Opening file")
     with open(IMGT_CLASSIFIED, 'r') as inputfile:
         lines = inputfile.readlines()
 
+    logging.info("Parsing lines")
     for line in tqdm.tqdm(lines):
         if line[0] == '>': 
             all_genes.add(line.split(';')[1].split(' ')[0])
@@ -60,6 +64,11 @@ def evalCurve(data, output_path, title='ROC'):
     plt.savefig(output_path)
 
 if __name__ == "__main__":
+
+    logging.basicConfig(stream=sys.stdout,
+                    format='%(asctime)s %(levelname)s %(process)d: ' +
+                    '%(message)s',
+                    level=logging.INFO)
 
     RESULTS_DIR = '/Users/rishi/dbio/mnt/final-paper/human/091/'
     # RESULTS_DIR = '/data/projects/rishi/final-paper/human/091/'
