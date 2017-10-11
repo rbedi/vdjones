@@ -67,10 +67,10 @@ if __name__ == "__main__":
 
     evalCurve([(ROC_raw, 'Full Alg.', 'green'),
                (ROC_baseline, 'Freq. Only', 'red')], 
-               'roc.png',
+               os.path.join(RESULTS_DIR,'qc/roc.png'),
               title='ROC (Human 091)')
 
     evalCurve([(PRC_raw, 'Full Alg.', 'green'),
                (PRC_baseline, 'Freq. Only', 'red')],
-               'prc.png',
+               os.path.join(RESULTS_DIR,'prc.png'),
                title='PRC (Human 091)')
