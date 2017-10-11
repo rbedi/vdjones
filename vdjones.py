@@ -186,6 +186,8 @@ if __name__ == "__main__":
     FASTA_FILE = args.fasta_file
     LOG_FILE = os.path.join(args.outpath, 'out.log')
 
+    num_cores = par.how_many_cores()
+
     logging.basicConfig(filename=LOG_FILE,
                         format='%(asctime)s %(levelname)s %(process)d: ' +
                         '%(message)s',
@@ -194,6 +196,7 @@ if __name__ == "__main__":
 
     logging.info('=================== CALL ===================')
     logging.info('{}'.format(' '.join(sys.argv)))
+    logging.info('We have {} cores available.'.format(num_cores))
     logging.info('============================================')
 
     ## Load Data
@@ -210,9 +213,9 @@ if __name__ == "__main__":
     else:
         logging.info("No adj list file found; starting adjacency list generation")
         num_segs = len(v_segs_int8)
-        intervals = gauss_interval(num_segs, 6)
+        intervals = gauss_interval(num_segs, num_cores-1)
         inputs = [(v_segs_int8, pair[0], pair[1]) for pair in intervals]
-        adj_lists = par.submit_jobs(gen_adj_list, inputs, 6)
+        adj_lists = par.submit_jobs(gen_adj_list, inputs, num_cores-1)
         logging.info("Merging adjacency lists")
         merged_list = merge_adj_lists(adj_lists)
         out.dump_connectivity(merged_list, allsegs_adj_list_file)
@@ -231,15 +234,16 @@ if __name__ == "__main__":
     cluster_rep_v_segs = list(set(cluster_rep_v_segs))
     non_singletons_v_segs = [x for x in cluster_rep_v_segs if len(merged_list[v_seg_dict[x]]) > 0]
     cluster_reps_file = os.path.join(args.outpath, 'cluster_reps.txt')
-    out.dump_connectivity(non_singletons_v_segs, cluster_reps_file)
+    out.dump_list(non_singletons_v_segs, cluster_reps_file)
+
 
     ## Connectivity of Cluster Reps
     logging.info("Starting adjacency list of cluster reps generation")
     cluster_v_segs_int8 = [np.fromstring(v_seg.strip(), np.int8) for v_seg in non_singletons_v_segs]
     num_cluster_segs = len(cluster_v_segs_int8)
-    intervals = gauss_interval(num_cluster_segs, 4)
+    intervals = gauss_interval(num_cluster_segs, num_cores-1)
     cluster_inputs = [(cluster_v_segs_int8, pair[0], pair[1]) for pair in intervals]
-    cluster_adj_lists = par.submit_jobs(gen_adj_list, cluster_inputs, 4)
+    cluster_adj_lists = par.submit_jobs(gen_adj_list, cluster_inputs, num_cores-1)
     logging.info("Merging adjacency lists")
     merged_cluster_adj_list = merge_adj_lists(cluster_adj_lists)
     cluster_adj_list_file = os.path.join(args.outpath, 'clusters.adjlist')

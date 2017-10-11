@@ -9,6 +9,9 @@ import pathos.multiprocessing as mp
 import signal
 
 
+def how_many_cores():
+    return mp.cpu_count()
+
 def curr_process():
     """
     Get current process id.

@@ -1,8 +1,6 @@
 from collections import defaultdict
 
 def dump_connectivity(adj_list, out_file):
-    import pdb
-    pdb.set_trace()
     with open(out_file, 'w') as of:
         for v in adj_list:
             for nb in adj_list[v]:
@@ -28,7 +26,6 @@ def recover_adj_list(in_file):
         lines = inf.readlines()
         for line in lines:
             parts = line.strip().split()
-            adj_list[parts[0]].append(parts[1])
-
+            adj_list[int(parts[0])].append(int(parts[1]))
     return adj_list
 
