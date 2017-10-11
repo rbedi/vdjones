@@ -172,6 +172,12 @@ def find_dominant_clones(v_seg_counts, connectivity_order, merged_cluster_adj_li
 
     return surviving_nodes    
 
+def top_frequency_clones(v_seg_counts, cutoff=1000):
+    sorted_clones = sorted(v_seg_counts.keys(),
+                           key=lambda x: v_seg_counts[x], reverse=True)[:cutoff]
+    sorted_clones_scores = [v_seg_counts[v] for v in sorted_clones]
+    return sorted_clones, sorted_clones_scores
+
 
 if __name__ == "__main__":
 
@@ -269,3 +275,15 @@ if __name__ == "__main__":
 
     selected_clones_file = os.path.join(args.outpath, 'dominant.fa')
     out.dump_fasta(sorted_survivors_v_segs, selected_clones_file, sorted_survivors_scores)
+
+    ## Find top frequency clones as baseline
+    logging.info("Determining top frequency clones for baseline")
+    sorted_clones, sorted_clones_scores = top_frequency_clones(v_seg_counts)
+    top_frequency_file = os.path.join(args.outpath, 'most_freq.fa')
+    out.dump_fasta(sorted_clones, top_frequency_file, sorted_clones_scores)
+
+    ## Select top X clones and render non-redundant
+    ## TODO!
+
+
+

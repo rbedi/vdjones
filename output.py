@@ -13,7 +13,7 @@ def dump_fasta(seqs, out_file, data=None):
             if data is None:
                 of.write('>{}\n{}\n'.format(idx, v))
             else:
-                of.write('>{};{}\n{}\n'.format(idx, data[idx], v))
+                of.write('>{}-{}\n{}\n'.format(idx, data[idx], v))
 
 def dump_list(seqs, out_file):
     with open(out_file, 'w') as of:
