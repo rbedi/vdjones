@@ -4,10 +4,15 @@ from collections import defaultdict
 import os
 import copy
 import sklearn.metrics
+import tqdm
 
 def compute_quality(PUTATIVE_FILE, IMGT_CLASSIFIED, cutoff=None):
     all_genes = set()
-    for line in open(IMGT_CLASSIFIED, 'r'):
+
+    with open(IMGT_CLASSIFIED, 'r') as inputfile:
+        lines = f.readlines()
+
+    for line in tqdm.tqdm(lines):
         if line[0] == '>': 
             all_genes.add(line.split(';')[1].split(' ')[0])
 
@@ -21,7 +26,7 @@ def compute_quality(PUTATIVE_FILE, IMGT_CLASSIFIED, cutoff=None):
     if cutoff is not None:
         lines = lines[:cutoff]
 
-    for line in lines:
+    for line in tqdm.tqdm(lines):
         if line[0] == '>': 
             IMGT_class, matchlen, dist = line.split(';')[1].split(' ')
             if int(dist) < 4:
