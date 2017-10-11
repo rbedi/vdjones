@@ -10,7 +10,7 @@ def compute_quality(PUTATIVE_FILE, IMGT_CLASSIFIED, cutoff=None):
     all_genes = set()
 
     with open(IMGT_CLASSIFIED, 'r') as inputfile:
-        lines = f.readlines()
+        lines = inputfile.readlines()
 
     for line in tqdm.tqdm(lines):
         if line[0] == '>': 
