@@ -22,6 +22,7 @@ def compute_quality(PUTATIVE_FILE, IMGT_CLASSIFIED, DEBUG_PATH=None, cutoff=None
         lines = inputfile.readlines()
 
     logging.info("Parsing lines")
+    imgt_counts = defaultdict(int)
     for line in tqdm.tqdm(lines):
         if line[0] == '>': 
             features = line.split(';')
@@ -31,14 +32,19 @@ def compute_quality(PUTATIVE_FILE, IMGT_CLASSIFIED, DEBUG_PATH=None, cutoff=None
                     assignment = v_assignment[0]
                     align_len = int(v_assignment[1])
                     muts = int(v_assignment[2])
+                    imgt_counts[assignment] += 1
                     if muts < 4 and align_len > 250:
                         all_genes.add(assignment)
+
+    total_count = float(sum(imgt_counts.values()))
+    imgt_freqs = {k : imgt_counts[k] / total_count for k in imgt_counts}
 
     logging.info("All genes present in source file: {}".format(all_genes))
 
     found_genes = defaultdict(int)
     ROC_data = []
     PRC_data = []
+    WROC_data = []
     FP = 0.0
     TP = 0.0
     
@@ -63,7 +69,9 @@ def compute_quality(PUTATIVE_FILE, IMGT_CLASSIFIED, DEBUG_PATH=None, cutoff=None
                 vseg_to_status[lines[idx+1].strip()] = 'FP'
             
             FN = (len(all_genes) - len(found_genes)) * 1.0
+            perc_explained = sum([imgt_freqs[k] for k in found_genes])
             ROC_data.append([TP, FP])
+            WROC_data.append([perc_explained, FP])
             PRC_data.append([TP / (TP + FP), TP / (TP + FN)])
 
     if DEBUG_PATH is not None:
@@ -84,11 +92,13 @@ def compute_quality(PUTATIVE_FILE, IMGT_CLASSIFIED, DEBUG_PATH=None, cutoff=None
 
     ROC_raw = np.array(ROC_data, dtype='float32')
     PRC_raw = np.array(PRC_data, dtype='float32')
+    WROC_raw = np.array(WROC_data, dtype='float32')
     
     ROC_raw[:, 0] /= len(all_genes)
     ROC_raw[:, 1] /= np.max(ROC_raw[:, 1])
+    WROC_raw[:, 1] /= np.max(WROC_raw[:, 1])
 
-    return ROC_raw, PRC_raw
+    return ROC_raw, PRC_raw, WROC_raw
 
 def evalCurve(data, output_path, title='ROC'):
     plt.figure()
@@ -122,8 +132,8 @@ if __name__ == "__main__":
     IMGT_CLASSIFIED = os.path.join(RESULTS_DIR, 'input_seqs_imgt_annot.fa')
     DEBUG_PATH = RESULTS_DIR
 
-    ROC_raw, PRC_raw = compute_quality(FULL_ALGO_GENES, IMGT_CLASSIFIED, DEBUG_PATH)#, cutoff=750)
-    ROC_baseline, PRC_baseline = compute_quality(FREQ_ONLY_GENES, IMGT_CLASSIFIED)#, cutoff=750)
+    ROC_raw, PRC_raw, WROC_raw = compute_quality(FULL_ALGO_GENES, IMGT_CLASSIFIED, DEBUG_PATH)#, cutoff=750)
+    ROC_baseline, PRC_baseline, WROC_baseline = compute_quality(FREQ_ONLY_GENES, IMGT_CLASSIFIED)#, cutoff=750)
 
     evalCurve([(ROC_raw, 'Full Alg.', 'green'),
                (ROC_baseline, 'Freq. Only', 'red')], 
@@ -134,3 +144,8 @@ if __name__ == "__main__":
                (PRC_baseline, 'Freq. Only', 'red')],
                os.path.join(RESULTS_DIR,'qc/prc.png'),
                title='PRC ({})'.format(args.run_name))
+
+    evalCurve([(WROC_raw, 'Full Alg.', 'green'),
+               (WROC_baseline, 'Freq. Only', 'red')],
+               os.path.join(RESULTS_DIR,'qc/wroc.png'),
+               title='Weighted ROC ({})'.format(args.run_name))

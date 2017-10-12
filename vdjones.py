@@ -210,6 +210,10 @@ if __name__ == "__main__":
     v_seg_counts, v_seg_dict, v_segs_int8, cdr3s, all_v_segs = load_data(FASTA_FILE)
     logging.info("Data loaded")
 
+    logging.info("Dumping FASTA of all V segs")
+    uniq_v_segs_fasta_file = os.path.join(args.outpath, 'uniq_v_segs.fa')
+    out.dump_fasta(sorted(v_seg_dict.keys(), key=lambda x:v_seg_dict[x]), uniq_v_segs_fasta_file)
+
     ## Connectivity
     allsegs_adj_list_file = os.path.join(args.outpath, 'allsegs.adjlist')
 
