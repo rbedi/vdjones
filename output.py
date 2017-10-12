@@ -29,3 +29,16 @@ def recover_adj_list(in_file):
             adj_list[int(parts[0])].append(int(parts[1]))
     return adj_list
 
+def recover_ordered_list(in_file):
+    mapping = {}
+    with open(in_file, 'r') as inf:
+        lines = inf.readlines()
+        for idx, line in enumerate(lines):
+            mapping[line.strip()] = idx
+    return mapping
+ 
+def dump_cyto_attr(attrs, title, out_file):
+    with open(out_file, 'w') as of:
+        of.write('{}\n'.format(title))
+        for k in attrs:
+            of.write('{} = {}\n'.format(k, attrs[k]))

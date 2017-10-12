@@ -76,7 +76,7 @@ def load_data(FASTA_FILE, V_SEG_LENGTH=300):
         
     uniq_v_segs = list(s)
 
-    # {uniq v seg idx: uniq v seg}
+    # {uniq v seg sequence: uniq v seg id}
     v_seg_dict = {}
     for idx, v_seg in enumerate(uniq_v_segs):
         v_seg_dict[v_seg] = idx
@@ -244,16 +244,20 @@ if __name__ == "__main__":
 
 
     ## Connectivity of Cluster Reps
-    logging.info("Starting adjacency list of cluster reps generation")
-    cluster_v_segs_int8 = [np.fromstring(v_seg.strip(), np.int8) for v_seg in non_singletons_v_segs]
-    num_cluster_segs = len(cluster_v_segs_int8)
-    intervals = gauss_interval(num_cluster_segs, num_cores-1)
-    cluster_inputs = [(cluster_v_segs_int8, pair[0], pair[1]) for pair in intervals]
-    cluster_adj_lists = par.submit_jobs(gen_adj_list, cluster_inputs, num_cores-1)
-    logging.info("Merging adjacency lists")
-    merged_cluster_adj_list = merge_adj_lists(cluster_adj_lists)
     cluster_adj_list_file = os.path.join(args.outpath, 'clusters.adjlist')
-    out.dump_connectivity(merged_cluster_adj_list, cluster_adj_list_file)
+    if os.path.exists(cluster_adj_list_file):
+        logging.info("Recovering cluster adj list")
+        merged_cluster_adj_list = out.recover_adj_list(cluster_adj_list_file)
+    else:
+        logging.info("No cluster adj list file found; Starting adj list of cluster reps generation")
+        cluster_v_segs_int8 = [np.fromstring(v_seg.strip(), np.int8) for v_seg in non_singletons_v_segs]
+        num_cluster_segs = len(cluster_v_segs_int8)
+        intervals = gauss_interval(num_cluster_segs, num_cores-1)
+        cluster_inputs = [(cluster_v_segs_int8, pair[0], pair[1]) for pair in intervals]
+        cluster_adj_lists = par.submit_jobs(gen_adj_list, cluster_inputs, num_cores-1)
+        logging.info("Merging adjacency lists")
+        merged_cluster_adj_list = merge_adj_lists(cluster_adj_lists)
+        out.dump_connectivity(merged_cluster_adj_list, cluster_adj_list_file)
 
     ## Find dominant clones
     # Sorted the cluster reps in increasing order of connectivity and then frequency
@@ -273,17 +277,24 @@ if __name__ == "__main__":
     sorted_survivors_v_segs = [non_singletons_v_segs[v] for v in sorted_survivors]
     sorted_survivors_scores = [surviving_nodes[v] for v in sorted_survivors]
 
-    selected_clones_file = os.path.join(args.outpath, 'dominant.fa')
+    selected_clones_file = os.path.join(args.outpath, 'full-alg-v-segs.fa')
     out.dump_fasta(sorted_survivors_v_segs, selected_clones_file, sorted_survivors_scores)
+
+    selected_clones_cytoscape_attrs_file = os.path.join(args.outpath, 'for-cytoscape-selected-nodes.attr')
+    out.dump_cyto_attr({v: 'selected' for v in sorted_survivors}, 
+                       'SelectedNodes', selected_clones_cytoscape_attrs_file)
 
     ## Find top frequency clones as baseline
     logging.info("Determining top frequency clones for baseline")
     sorted_clones, sorted_clones_scores = top_frequency_clones(v_seg_counts)
-    top_frequency_file = os.path.join(args.outpath, 'most_freq.fa')
+    top_frequency_file = os.path.join(args.outpath, 'most-freq-v-segs.fa')
     out.dump_fasta(sorted_clones, top_frequency_file, sorted_clones_scores)
 
     ## Select top X clones and render non-redundant
-    ## TODO!
+    
+
+    logging.info('================ END CALL ==================')
+    logging.info('============================================')
 
 
 
